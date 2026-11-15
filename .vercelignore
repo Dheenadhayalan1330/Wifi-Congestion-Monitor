@@ -1,0 +1,8 @@
+frontend/
+backend/
+__pycache__/
+*.db
+*.pyc
+node_modules/
+package-lock.json
+.gitignore

@@ -13,7 +13,14 @@ from flask import Flask, jsonify, request, send_file, g
 from flask_cors import CORS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BASE_DIR, 'wifi.db')
+
+# Vercel serverless: filesystem is read-only except /tmp
+# Local dev: use project directory
+IS_VERCEL = os.environ.get('VERCEL', '') == '1'
+if IS_VERCEL:
+    DB_PATH = '/tmp/wifi.db'
+else:
+    DB_PATH = os.path.join(BASE_DIR, 'wifi.db')
 
 app = Flask(__name__)
 CORS(app)
@@ -2631,20 +2638,28 @@ def render_app():
 
 # ─────────────────────────── STARTUP ─────────────────────────────────────────
 
-if __name__ == '__main__':
+def _ensure_db():
+    """Initialize schema and seed if the DB is empty (cold start on Vercel or first local run)."""
     init_schema()
-    with app.app_context():
-        print("🌱  Seeding college schedule database (8:30 AM – 6:30 PM, Sat-Sun off)...")
-        with app.test_request_context('/api/seed'):
-            g.db = sqlite3.connect(DB_PATH)
-            g.db.row_factory = sqlite3.Row
-            g.db.execute("PRAGMA foreign_keys=ON")
-            try:
-                seed_database(35)
-                g.db.close()
-                print("✅  College database seeded successfully!")
-            except Exception as e:
-                print(f"Seed error: {e}")
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    count = db.execute("SELECT COUNT(*) FROM zones").fetchone()[0]
+    db.close()
+    if count == 0:
+        with app.app_context():
+            with app.test_request_context('/api/seed'):
+                g.db = sqlite3.connect(DB_PATH)
+                g.db.row_factory = sqlite3.Row
+                g.db.execute("PRAGMA foreign_keys=ON")
+                try:
+                    seed_database(35)
+                    g.db.close()
+                except Exception as e:
+                    print(f"Seed error: {e}")
 
+# Auto-seed on import (needed for Vercel serverless cold starts)
+_ensure_db()
+
+if __name__ == '__main__':
     print("🚀  College Wi-Fi System running on http://localhost:5000")
     app.run(host='0.0.0.0', port=5000, debug=False)
