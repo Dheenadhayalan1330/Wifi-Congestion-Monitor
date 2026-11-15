@@ -1034,6 +1034,7 @@ def api_import():
 # ─────────────────────────── FRONTEND APPLICATION ────────────────────────────
 
 @app.route('/')
+@app.route('/api/index')
 @app.route('/analysis')
 @app.route('/recommendations')
 @app.route('/db')
