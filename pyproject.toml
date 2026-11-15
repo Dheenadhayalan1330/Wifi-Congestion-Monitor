@@ -1,2 +1,18 @@
-[tool.vercel]
-entrypoint = "run:app"
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wifi-congestion-monitor"
+version = "0.1.0"
+dependencies = [
+    "Flask>=3.0.0",
+    "flask-cors>=4.0.0"
+]
+
+[tool.vercel.builds]
+builder = "@vercel/python"
+
+[tool.vercel.routes]
+src = "/(.*)"
+dest = "run.py"
